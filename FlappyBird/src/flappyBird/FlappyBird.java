@@ -11,11 +11,17 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
 public class FlappyBird implements ActionListener,MouseListener,KeyListener
@@ -29,7 +35,8 @@ public class FlappyBird implements ActionListener,MouseListener,KeyListener
 	
 	public Rectangle bird;
 	
-	public int ticks,yMotion,score,highScore = 0;
+	public int ticks,yMotion,score;
+	private String highScore = "NOBODY:0";
 	
 	public boolean gameOver,started;
 	
@@ -128,7 +135,7 @@ public class FlappyBird implements ActionListener,MouseListener,KeyListener
 	@Override
 	public void actionPerformed(ActionEvent e) 
 	{
-		int speed =6;
+		int speed =10;
 		ticks++;
 		
 /*	
@@ -151,6 +158,7 @@ public class FlappyBird implements ActionListener,MouseListener,KeyListener
 				
 			 	if (gameOver)
 				{
+			 		checkScore();
 					column.x +=speed;
 				}
 				
@@ -190,6 +198,7 @@ public class FlappyBird implements ActionListener,MouseListener,KeyListener
 				if(column.intersects(bird))
 				{
 					gameOver = true;
+					checkScore();
 					
 					if(bird.x <= column.x)
 					{	
@@ -210,18 +219,20 @@ public class FlappyBird implements ActionListener,MouseListener,KeyListener
 				}
 			}
 			
-			if (bird.y>Height-120 || bird.y<0 || bird.y == 0)
+			if (bird.y<0 || bird.y == 0)
 			{
+				checkScore();
+				bird.y =  0;
 				gameOver = true;
 			}
 			
-			if(bird.y +yMotion >= Height-120)
+			if(bird.y>Height-120 || bird.y +yMotion >= Height-120)
 			{
+				checkScore();
 				bird.y = Height - 120 - bird.height ;
 				gameOver = true;
 			}
 		}
-		highScore();
 		renderer.repaint();
 	}
 	
@@ -262,30 +273,107 @@ public class FlappyBird implements ActionListener,MouseListener,KeyListener
 			g.drawString(String.valueOf(score), Width / 2 -25, 100);
 		}
 		
-		g.setColor(Color.yellow);
-		g.setFont(new Font("Arial" , 1 , 25));
+		if(highScore.equals("NOBODY:0"))
+		{
+			highScore = this.getHighScore();
+		}
+		
+		
 		
 		if(!gameOver && started)
 		{	
-			g.drawString("High Score" , 650 , 20);
-			g.drawString(String.valueOf(highScore),700 , 50);
+			g.setColor(Color.red);
+			g.fillRect(20, 15, 180, 65);
+			
+			g.setColor(Color.yellow);
+			g.setFont(new Font("Arial" , 1 , 25));
+			
+			g.drawString("High Score" , 25 , 40);
+			g.drawString(highScore, 25 , 70);
 		}
 
 		g.setFont(new Font("Arial" , 1 , 50));
 		if(gameOver)
 		{
-			g.drawString("High Score ", Width/2 - 180, Height/2 + 50 );
-			g.drawString(String.valueOf(highScore), Width/2 +110 , Height/2 +50);
+			g.setColor(Color.yellow);
+			g.drawString("High Score ", Width/2 - 150, Height/2 + 50 );
+			g.drawString(highScore, Width/2 -150, Height/2 +100);
 		}
-		
+	
 	}
 	
-	public void highScore()
+	
+	public String getHighScore()
 	{
-		
-		if(score > highScore)
+		FileReader readFile = null;
+		BufferedReader reader = null;
+		try 
 		{
-			highScore = score;
+			readFile = new FileReader("FB_HighScore.dat");
+			reader = new BufferedReader(readFile);
+			return reader.readLine();
+		}
+		catch (Exception e) 
+		{
+			return "NOBODY:0";
+		}
+		finally
+		{
+			try 
+			{
+				if(reader!= null)
+					reader.close();
+			}
+			catch (IOException e) 
+			{
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public void checkScore()
+	{
+		if(score > Integer.parseInt(highScore.split(":")[1]))
+		{
+			String name = JOptionPane.showInputDialog("NEW HIGHSCORE SET! Enter your Name");
+			highScore = name+":"+score;
+			
+			File scoreFile = new File("FB_HighScore.dat");
+			if(!scoreFile.exists())
+			{
+				try 
+				{
+					scoreFile.createNewFile();
+				}
+				catch (IOException e) 
+				{
+					e.printStackTrace();
+				}
+			}
+			
+			FileWriter writeFile =null;
+			BufferedWriter writer = null;
+			
+			try 
+			{
+				writeFile = new FileWriter(scoreFile);
+				writer = new BufferedWriter(writeFile);
+				writer.write(this.highScore);
+			}
+			catch(Exception e)
+			{	
+			}
+			finally
+			{
+					try 
+					{
+						if(writer != null)
+							writer.close();
+					} 
+					catch (Exception e) 
+					{
+					}
+			}
 		}
 	}
 	
